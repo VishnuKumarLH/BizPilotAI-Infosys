@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% from "components/icons.html" import icon %}
+{% from "components/topbar.html" import topbar %}
+{% block title %}Feedback · BizPilot AI{% endblock %}
+{% block content %}
+<main class="management-page">
+  {{ topbar('Feedback', 'Customer sentiment and service recovery', 'Business data /', 'Add feedback', 'feedbackDialog') }}
+  <div class="management-content">
+    {% set positive = feedback_entries|selectattr('sentiment', 'equalto', 'positive')|list|length %}
+    {% set unresolved = feedback_entries|rejectattr('is_resolved')|list|length %}
+    {% set ns = namespace(rating=0) %}{% for item in feedback_entries %}{% set ns.rating = ns.rating + item.rating %}{% endfor %}
+    <section class="metric-strip" aria-label="Feedback summary">
+      <article><span class="metric-icon amber">{{ icon('sparkles') }}</span><p><small>Average shown</small><strong>{{ (ns.rating / feedback_entries|length)|round(1) if feedback_entries else '—' }}</strong><em>Out of 5 stars</em></p></article>
+      <article><span class="metric-icon mint">{{ icon('message') }}</span><p><small>Positive shown</small><strong>{{ positive }}</strong><em>Customer advocates</em></p></article>
+      <article><span class="metric-icon red">{{ icon('alert') }}</span><p><small>Unresolved shown</small><strong>{{ unresolved }}</strong><em>Needs a follow-up</em></p></article>
+    </section>
+    <section class="data-panel">
+      <div class="data-toolbar">
+        <div><h1>Customer voice</h1><p>Capture comments, surface patterns, and close the loop.</p></div>
+        <form class="filter-row" method="get">
+          <select name="rating" aria-label="Filter by rating"><option value="">All ratings</option>{% for n in range(5, 0, -1) %}<option value="{{ n }}" {% if request.args.get('rating') == n|string %}selected{% endif %}>{{ n }} stars</option>{% endfor %}</select>
+          <select name="sentiment" aria-label="Filter by sentiment"><option value="">All sentiment</option>{% for name in ['positive','neutral','negative'] %}<option value="{{ name }}" {% if request.args.get('sentiment') == name %}selected{% endif %}>{{ name|title }}</option>{% endfor %}</select>
+          <button class="btn btn-secondary" type="submit">Filter</button>
+        </form>
+      </div>
+      <div class="feedback-grid">
+      {% for item in feedback_entries %}
+        <article class="feedback-card">
+          <header><div class="customer-avatar">{{ item.customer_name[0]|upper }}</div><div><strong>{{ item.customer_name }}</strong><small>{{ item.feedback_date.strftime('%d %b %Y') }} · {{ item.product.name if item.product else 'General feedback' }}</small></div><span class="sentiment-dot {{ item.sentiment }}">{{ item.sentiment }}</span></header>
+          <div class="stars" aria-label="{{ item.rating }} out of 5">{% for star in range(1,6) %}<span class="{% if star <= item.rating %}filled{% endif %}">★</span>{% endfor %}</div>
+          <blockquote>{{ item.feedback_text }}</blockquote>
+          <footer>
+            <span class="resolution-state {% if item.is_resolved %}resolved{% endif %}">{{ 'Resolved' if item.is_resolved else 'Needs response' }}</span>
+            <div class="row-actions">
+              <button class="icon-btn edit-button" type="button" data-dialog-open="feedbackDialog" data-record-id="{{ item.id }}" data-fields="{{ item.to_dict()|tojson|forceescape }}" aria-label="Edit feedback">{{ icon('edit') }}</button>
+              <button class="icon-btn delete-button" type="button" data-delete-url="{{ url_for('feedback.feedback_detail', feedback_id=item.id) }}" data-delete-name="feedback from {{ item.customer_name }}" aria-label="Delete feedback">{{ icon('trash') }}</button>
+            </div>
+          </footer>
+        </article>
+      {% else %}
+        <div class="empty-table span-all"><span>{{ icon('message') }}</span><strong>No feedback found</strong><p>Add a customer comment or change the current filters.</p></div>
+      {% endfor %}
+      </div>
+      {% include "partials/pagination.html" %}
+    </section>
+  </div>
+</main>
+
+<dialog class="app-dialog" id="feedbackDialog">
+  <form class="api-form" data-create-endpoint="{{ url_for('feedback.feedback_collection') }}" method="dialog">
+    <header><div><p class="kicker">Customer voice</p><h2 data-dialog-title>Add feedback</h2></div><button class="icon-btn" type="button" data-dialog-close aria-label="Close feedback form">{{ icon('x') }}</button></header>
+    <div class="dialog-body form-grid">
+      <label>Customer name<input name="customer_name" required placeholder="Customer name"></label>
+      <label>Product<select name="product_id"><option value="">General feedback</option>{% for product in products %}<option value="{{ product.id }}">{{ product.name }}</option>{% endfor %}</select></label>
+      <label>Rating<select name="rating" required>{% for n in range(5, 0, -1) %}<option value="{{ n }}">{{ n }} — {{ 'Excellent' if n == 5 else 'Good' if n == 4 else 'Average' if n == 3 else 'Poor' if n == 2 else 'Very poor' }}</option>{% endfor %}</select></label>
+      <label>Feedback date<input name="feedback_date" type="date" required></label>
+      <label class="span-2">Comment<textarea name="feedback_text" rows="4" required placeholder="What did the customer say?"></textarea></label>
+      <label class="check-label span-2"><input name="is_resolved" type="checkbox"> Mark as resolved</label>
+      <label class="span-2">Resolution notes<textarea name="resolution_notes" rows="2" placeholder="How was this handled?"></textarea></label>
+    </div>
+    <footer><button class="btn btn-ghost" type="button" data-dialog-close>Cancel</button><button class="btn btn-primary" type="submit">Save feedback</button></footer>
+  </form>
+</dialog>
+{% endblock %}

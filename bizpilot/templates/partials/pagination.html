@@ -1,0 +1,8 @@
+{% from "components/icons.html" import icon %}
+{% if pagination.pages > 1 %}
+<nav class="pagination" aria-label="Pagination">
+  {% if pagination.has_prev %}<a href="{{ request.path }}?{{ request.args|urlencode }}&page={{ pagination.prev_num }}">{{ icon('chevron-left') }} Previous</a>{% else %}<span>{{ icon('chevron-left') }} Previous</span>{% endif %}
+  <p>Page <strong>{{ pagination.page }}</strong> of {{ pagination.pages }}</p>
+  {% if pagination.has_next %}<a href="{{ request.path }}?{{ request.args|urlencode }}&page={{ pagination.next_num }}">Next {{ icon('chevron-right') }}</a>{% else %}<span>Next {{ icon('chevron-right') }}</span>{% endif %}
+</nav>
+{% endif %}

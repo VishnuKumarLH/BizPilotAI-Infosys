@@ -1,0 +1,73 @@
+{% from "components/icons.html" import icon %}
+<aside class="left-sidebar" id="leftSidebar" aria-label="Primary navigation">
+  <div class="brand-row">
+    <a class="brand" href="{{ url_for('main.index') }}" aria-label="BizPilot AI home">
+      <span class="brand-mark" aria-hidden="true"><img src="{{ url_for('static', filename='images/bizpilot-ai-logo.png') }}" alt=""></span>
+      <span class="brand-copy"><strong>BizPilot AI</strong><small>Decision Engine</small></span>
+    </a>
+    <button class="icon-btn sidebar-toggle" id="leftSidebarToggle" type="button" aria-label="Collapse navigation" aria-controls="leftSidebar" aria-expanded="true" title="Collapse navigation">
+      {{ icon('panel-left', 'icon sidebar-toggle-icon') }}
+    </button>
+  </div>
+
+  <label class="sidebar-search" for="sidebarNavSearch">
+    {{ icon('search') }}
+    <input id="sidebarNavSearch" type="search" placeholder="Search navigation" autocomplete="off" aria-label="Search navigation">
+    <kbd>Ctrl K</kbd>
+  </label>
+
+  <a class="sidebar-new-chat" id="sidebarNewChat" href="{{ url_for('main.index') }}" data-tooltip="New decision">
+    <span class="nav-icon nav-icon-accent">{{ icon('plus') }}</span>
+    <span class="nav-label">New decision</span>
+    <span class="new-chat-key nav-label" aria-hidden="true">N</span>
+  </a>
+
+  <nav class="primary-nav" aria-label="Business workspace">
+    <p class="nav-section nav-label">Workspace</p>
+    <a class="nav-item {% if page_name == 'chat' %}active{% endif %}" href="{{ url_for('main.index') }}" data-tooltip="AI Decision Center"{% if page_name == 'chat' %} aria-current="page"{% endif %}>
+      <span class="nav-icon">{{ icon('sparkles') }}</span><span class="nav-label">AI Decision Center</span>
+    </a>
+    <a class="nav-item {% if page_name == 'agent_history' %}active{% endif %}" href="{{ url_for('agent.history_page') }}" data-tooltip="Agent History"{% if page_name == 'agent_history' %} aria-current="page"{% endif %}>
+      <span class="nav-icon">{{ icon('workflow') }}</span><span class="nav-label">Agent History</span>
+    </a>
+    <a class="nav-item {% if page_name == 'memory' %}active{% endif %}" href="{{ url_for('agent.memory_page') }}" data-tooltip="Memory"{% if page_name == 'memory' %} aria-current="page"{% endif %}>
+      <span class="nav-icon">{{ icon('history') }}</span><span class="nav-label">Memory</span>
+    </a>
+    <p class="nav-section nav-label">Business data</p>
+    <a class="nav-item {% if page_name == 'products' %}active{% endif %}" href="{{ url_for('products.product_collection') }}" data-tooltip="Products"{% if page_name == 'products' %} aria-current="page"{% endif %}>
+      <span class="nav-icon">{{ icon('package') }}</span><span class="nav-label">Products</span>
+    </a>
+    <a class="nav-item {% if page_name == 'sales' %}active{% endif %}" href="{{ url_for('sales.sale_collection') }}" data-tooltip="Sales"{% if page_name == 'sales' %} aria-current="page"{% endif %}>
+      <span class="nav-icon">{{ icon('sales') }}</span><span class="nav-label">Sales</span>
+    </a>
+    <a class="nav-item {% if page_name == 'expenses' %}active{% endif %}" href="{{ url_for('expenses.expense_collection') }}" data-tooltip="Expenses"{% if page_name == 'expenses' %} aria-current="page"{% endif %}>
+      <span class="nav-icon">{{ icon('receipt') }}</span><span class="nav-label">Expenses</span>
+    </a>
+    <a class="nav-item {% if page_name == 'feedback' %}active{% endif %}" href="{{ url_for('feedback.feedback_collection') }}" data-tooltip="Feedback"{% if page_name == 'feedback' %} aria-current="page"{% endif %}>
+      <span class="nav-icon">{{ icon('message') }}</span><span class="nav-label">Feedback</span>
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="theme-switch nav-label" role="group" aria-label="Appearance">
+      <button class="theme-option active" type="button" data-theme-value="light" aria-pressed="true">{{ icon('sun') }} <span>Light</span></button>
+      <button class="theme-option" type="button" data-theme-value="dark" aria-pressed="false">{{ icon('moon') }} <span>Dark</span></button>
+    </div>
+    <button class="account-card" id="accountMenuToggle" type="button" aria-controls="accountMenu" aria-expanded="false" data-tooltip="Account">
+      <img class="avatar" src="{{ url_for('static', filename='images/demo-user.png') }}" alt="">
+      <span class="account-copy nav-label">
+        <strong>{{ current_user.username }}</strong>
+        <small>{{ current_user.business_name }}</small>
+      </span>
+      <span class="account-menu-dots nav-label">{{ icon('more') }}</span>
+    </button>
+    <div class="account-menu" id="accountMenu" hidden>
+      <div class="account-menu-heading">
+        <strong>{{ current_user.business_name }}</strong>
+        <small>{{ current_user.email }}</small>
+      </div>
+      <a href="{{ url_for('auth.logout') }}">{{ icon('logout') }}<span>Sign out</span></a>
+    </div>
+  </div>
+</aside>
+<button class="drawer-backdrop nav-backdrop" id="mobileBackdrop" type="button" aria-label="Close navigation" tabindex="-1"></button>

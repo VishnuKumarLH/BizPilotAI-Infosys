@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% from "components/icons.html" import icon %}
+{% from "components/topbar.html" import topbar %}
+{% block title %}Sales · BizPilot AI{% endblock %}
+{% block content %}
+<main class="management-page">
+  {{ topbar('Sales', 'Orders, invoices, and stock movement', 'Business data /', 'Record sale', 'saleDialog') }}
+  <div class="management-content">
+    {% set ns = namespace(revenue=0, units=0) %}
+    {% for sale in sales %}{% set ns.revenue = ns.revenue + sale.final_amount %}{% set ns.units = ns.units + sale.items|sum(attribute='quantity') %}{% endfor %}
+    <section class="metric-strip" aria-label="Sales summary">
+      <article><span class="metric-icon mint">{{ icon('sales') }}</span><p><small>Revenue shown</small><strong>₹{{ "{:,.0f}".format(ns.revenue) }}</strong><em>Across this page</em></p></article>
+      <article><span class="metric-icon blue">{{ icon('receipt') }}</span><p><small>Orders shown</small><strong>{{ sales|length }}</strong><em>{{ pagination.total }} total records</em></p></article>
+      <article><span class="metric-icon violet">{{ icon('package') }}</span><p><small>Units sold shown</small><strong>{{ ns.units }}</strong><em>Removed from stock automatically</em></p></article>
+    </section>
+    <section class="data-panel">
+      <div class="data-toolbar">
+        <div><h1>Sales ledger</h1><p>Every archived sale restores its products to inventory.</p></div>
+        <form class="filter-row" method="get">
+          <label>From<input type="date" name="start_date" value="{{ request.args.get('start_date', '') }}"></label>
+          <label>To<input type="date" name="end_date" value="{{ request.args.get('end_date', '') }}"></label>
+          <button class="btn btn-secondary" type="submit">Apply</button>
+        </form>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Invoice</th><th>Date</th><th>Customer</th><th>Items</th><th>Total</th><th>Payment</th><th class="actions-col">Actions</th></tr></thead>
+          <tbody>
+          {% for sale in sales %}
+            <tr>
+              <td data-label="Invoice"><strong>{{ sale.invoice_number }}</strong><small class="cell-sub">{{ sale.sale_time.strftime('%I:%M %p') }}</small></td>
+              <td data-label="Date">{{ sale.sale_date.strftime('%d %b %Y') }}</td>
+              <td data-label="Customer">{{ sale.customer_name or 'Walk-in Customer' }}<small class="cell-sub">{{ sale.customer_phone or 'No phone' }}</small></td>
+              <td data-label="Items"><strong>{{ sale.items|sum(attribute='quantity') }}</strong><small class="cell-sub">{{ sale.items|length }} line item(s)</small></td>
+              <td data-label="Total"><strong>₹{{ "{:,.0f}".format(sale.final_amount) }}</strong>{% if sale.discount_amount %}<small class="cell-sub">₹{{ "{:,.0f}".format(sale.discount_amount) }} discount</small>{% endif %}</td>
+              <td data-label="Payment"><span class="payment-badge">{{ sale.payment_method }}</span></td>
+              <td class="row-actions" data-label="Actions">
+                <button class="icon-btn view-button" type="button" data-view-url="{{ url_for('sales.sale_detail', sale_id=sale.id) }}" data-view-dialog="saleViewDialog" aria-label="View {{ sale.invoice_number }}">{{ icon('eye') }}</button>
+                <button class="icon-btn delete-button" type="button" data-delete-url="{{ url_for('sales.sale_detail', sale_id=sale.id) }}" data-delete-name="{{ sale.invoice_number }}" data-delete-message="Archive this sale and restore its stock?" aria-label="Archive {{ sale.invoice_number }}">{{ icon('trash') }}</button>
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="7"><div class="empty-table"><span>{{ icon('sales') }}</span><strong>No sales found</strong><p>Record a sale to begin tracking revenue.</p></div></td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% include "partials/pagination.html" %}
+    </section>
+  </div>
+</main>
+
+<dialog class="app-dialog wide-dialog" id="saleDialog">
+  <form class="api-form sale-form" data-create-endpoint="{{ url_for('sales.sale_collection') }}" method="dialog">
+    <header><div><p class="kicker">New transaction</p><h2>Record a sale</h2></div><button class="icon-btn" type="button" data-dialog-close aria-label="Close sale form">{{ icon('x') }}</button></header>
+    <div class="dialog-body form-grid">
+      <label>Customer name<input name="customer_name" placeholder="Walk-in Customer"></label>
+      <label>Phone<input name="customer_phone" inputmode="tel" placeholder="Optional"></label>
+      <label>Sale date<input name="sale_date" type="date" required></label>
+      <label>Payment<select name="payment_method"><option>UPI</option><option>Cash</option><option>Card</option></select></label>
+      <div class="span-2 line-items-block">
+        <div class="line-items-title"><div><strong>Line items</strong><small>Stock is checked before the sale is saved.</small></div><button class="btn btn-secondary btn-small" type="button" data-add-sale-line>{{ icon('plus') }} Add item</button></div>
+        <div data-sale-lines>
+          <div class="sale-line">
+            <select name="product_id" required><option value="">Choose product</option>{% for product in products %}<option value="{{ product.id }}" data-price="{{ product.selling_price }}">{{ product.name }} · {{ product.stock_quantity }} in stock · ₹{{ product.selling_price }}</option>{% endfor %}</select>
+            <input name="quantity" type="number" min="1" value="1" required aria-label="Quantity">
+            <button class="icon-btn" type="button" data-remove-sale-line aria-label="Remove line">{{ icon('x') }}</button>
+          </div>
+        </div>
+      </div>
+      <label>Discount amount (₹)<input name="discount_amount" type="number" min="0" step="0.01" value="0"></label>
+      <label>Notes<input name="notes" placeholder="Optional transaction note"></label>
+    </div>
+    <footer><button class="btn btn-ghost" type="button" data-dialog-close>Cancel</button><button class="btn btn-primary" type="submit">Complete sale</button></footer>
+  </form>
+</dialog>
+
+<dialog class="app-dialog" id="saleViewDialog">
+  <div class="view-dialog">
+    <header><div><p class="kicker">Invoice detail</p><h2 data-view-title>Sale</h2></div><button class="icon-btn" type="button" data-dialog-close aria-label="Close sale details">{{ icon('x') }}</button></header>
+    <div class="dialog-body" data-view-content><div class="history-skeleton"></div></div>
+    <footer><button class="btn btn-secondary" type="button" data-dialog-close>Close</button></footer>
+  </div>
+</dialog>
+{% endblock %}

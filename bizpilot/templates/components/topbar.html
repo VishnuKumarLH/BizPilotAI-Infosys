@@ -1,0 +1,16 @@
+{% from "components/icons.html" import icon %}
+{% macro topbar(title, subtitle='', eyebrow='', action_label='', action_dialog='') -%}
+<header class="topbar {% if action_label %}management-topbar{% endif %}">
+  <div class="topbar-title">
+    <button class="icon-btn mobile-nav-toggle" id="mobileNavToggle" type="button" aria-label="Open navigation">{{ icon('menu') }}</button>
+    <div>
+      {% if eyebrow %}<span class="page-breadcrumb">{{ eyebrow }}</span>{% endif %}
+      <strong>{{ title }}</strong>
+      {% if subtitle %}<small>{{ subtitle }}</small>{% endif %}
+    </div>
+  </div>
+  {% if action_label %}
+    <button class="btn btn-primary" type="button" data-dialog-open="{{ action_dialog }}">{{ icon('plus') }}<span>{{ action_label }}</span></button>
+  {% endif %}
+</header>
+{%- endmacro %}

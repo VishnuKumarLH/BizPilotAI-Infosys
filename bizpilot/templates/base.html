@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="BizPilot AI is an explainable AI decision engine for small-business operations.">
+  <meta name="theme-color" content="#f4f6fb">
+  <title>{% block title %}BizPilot AI{% endblock %}</title>
+  <script>
+    try {
+      document.documentElement.dataset.theme = localStorage.getItem("bizpilot-theme") === "dark" ? "dark" : "light";
+    } catch (_) {
+      document.documentElement.dataset.theme = "light";
+    }
+  </script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body class="{% if current_user.is_authenticated %}app-shell{% else %}auth-shell{% endif %} page-{{ page_name|default('auth') }}">
+  <a class="skip-link" href="#mainContent">Skip to main content</a>
+  {% if current_user.is_authenticated %}{% include "components/sidebar.html" %}{% endif %}
+
+  <div class="{% if current_user.is_authenticated %}workspace{% else %}auth-workspace{% endif %}" id="mainContent">
+    {% include "components/flash_messages.html" %}
+    {% block content %}{% endblock %}
+  </div>
+
+  <div class="toast-stack" id="toastStack" aria-live="polite"></div>
+  <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

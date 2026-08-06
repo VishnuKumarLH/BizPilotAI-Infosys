@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% from "components/icons.html" import icon %}
+{% block title %}Create account · BizPilot AI{% endblock %}
+{% block content %}
+<main class="auth-page">
+  <section class="auth-brand-panel">
+    <div class="auth-brand-inner">
+      <a class="auth-logo" href="{{ url_for('auth.login') }}"><span class="brand-mark"><img src="{{ url_for('static', filename='images/bizpilot-ai-logo.png') }}" alt=""></span><span><strong>BizPilot AI</strong><small>Decision Engine</small></span></a>
+      <span class="eyebrow">{{ icon('sparkles') }} Built for small-business teams</span>
+      <h1>Your smartest business day starts here.</h1>
+      <p>Bring operational signals together and get a clear, explainable recommendation in seconds.</p>
+      <div class="auth-metric-grid"><div><strong>5</strong><span>specialist agents</span></div><div><strong>1</strong><span>clear decision</span></div><div><strong>24/7</strong><span>business context</span></div></div>
+    </div>
+  </section>
+  <section class="auth-form-panel">
+    <div class="auth-card register-card">
+      <div><p class="kicker">Get started</p><h2>Create your business workspace</h2><p class="subtle">You can add products and transactions after setup.</p></div>
+      <form method="post" class="stack-form two-column-form">
+        <label>Your name<input type="text" name="username" value="{{ (form or {}).get('username', '') }}" placeholder="Store owner" required></label>
+        <label>Business name<input type="text" name="business_name" value="{{ (form or {}).get('business_name', '') }}" placeholder="Your business" required></label>
+        <label class="full-field">Business email<input type="email" name="email" value="{{ (form or {}).get('email', '') }}" placeholder="owner@business.com" autocomplete="email" required></label>
+        <label>Password<input type="password" name="password" placeholder="At least 8 characters" autocomplete="new-password" minlength="8" required></label>
+        <label>Confirm password<input type="password" name="confirm_password" placeholder="Repeat password" autocomplete="new-password" minlength="8" required></label>
+        <button class="btn btn-primary btn-wide full-field" type="submit">Create workspace {{ icon('arrow-up-right') }}</button>
+      </form>
+      <p class="auth-switch">Already have an account? <a href="{{ url_for('auth.login') }}">Sign in</a></p>
+    </div>
+  </section>
+</main>
+{% endblock %}

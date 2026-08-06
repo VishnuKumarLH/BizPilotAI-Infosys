@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% from "components/icons.html" import icon %}
+{% block title %}AI Decision Center · BizPilot AI{% endblock %}
+{% block content %}
+<main class="chat-layout">
+  <section class="chat-center" aria-label="AI Decision Center workspace">
+    <header class="topbar chat-topbar">
+      <div class="topbar-title">
+        <button class="icon-btn mobile-nav-toggle" id="mobileNavToggle" type="button" aria-label="Open navigation">{{ icon('menu') }}</button>
+        <div class="chat-title-copy">
+          <strong>AI Decision Center</strong>
+          <small><span class="status-dot"></span> Five business agents ready</small>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <span class="context-chip">{{ current_user.business_name }}</span>
+        <button class="topbar-icon" type="button" data-theme-cycle aria-label="Switch theme" title="Switch theme">{{ icon('sun', 'icon theme-cycle-icon') }}</button>
+        <button class="topbar-icon" id="chatHelpButton" type="button" aria-label="AI Decision Center help" title="Help">{{ icon('help') }}</button>
+        <button class="header-action" id="topNewChatButton" type="button">{{ icon('plus') }}<span class="header-action-label">New decision</span></button>
+        <button class="header-action history-toggle" id="historyToggle" type="button" aria-label="Open recent decisions" aria-controls="historySidebar" aria-expanded="true">
+          {{ icon('panel-right') }}<span class="header-action-label">Recent</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="messages" id="messages" aria-live="polite" data-testid="chat-scroll-region">
+      <section class="welcome-state" id="welcomeState">
+        <div class="welcome-mark" aria-hidden="true"><img src="{{ url_for('static', filename='images/bizpilot-ai-logo.png') }}" alt=""></div>
+        <p class="kicker">AI Decision Engine</p>
+        <h1>Welcome to BizPilot AI</h1>
+        <p>Ask questions about your sales, inventory, expenses, customers, and business performance.</p>
+        <div class="prompt-grid" aria-label="Quick business questions">
+          <button class="prompt-card prompt-amber" type="button" data-prompt="How is my business performing this month?">
+            <span>{{ icon('chart') }}</span><span class="prompt-copy"><strong>Analyze Sales</strong><small>Review revenue, orders, and recent performance</small></span><b>{{ icon('plus') }}</b>
+          </button>
+          <button class="prompt-card prompt-blue" type="button" data-prompt="Which products should I restock?">
+            <span>{{ icon('boxes') }}</span><span class="prompt-copy"><strong>Check Inventory</strong><small>Find low-stock products and restock priorities</small></span><b>{{ icon('plus') }}</b>
+          </button>
+          <button class="prompt-card prompt-lime" type="button" data-prompt="What are customers complaining about?">
+            <span>{{ icon('message') }}</span><span class="prompt-copy"><strong>Review Feedback</strong><small>Understand sentiment and unresolved concerns</small></span><b>{{ icon('plus') }}</b>
+          </button>
+          <button class="prompt-card prompt-pink" type="button" data-prompt="What should I promote this week?">
+            <span>{{ icon('lightbulb') }}</span><span class="prompt-copy"><strong>Business Recommendation</strong><small>Turn business signals into a practical next step</small></span><b>{{ icon('plus') }}</b>
+          </button>
+        </div>
+      </section>
+    </div>
+
+    <button class="scroll-bottom-button" id="scrollToBottom" type="button" aria-label="Scroll to latest response" hidden>{{ icon('chevron-down') }}<span>Latest</span></button>
+    {% include "components/prompt_composer.html" %}
+  </section>
+  {% include "components/right_panel.html" %}
+</main>
+{% endblock %}

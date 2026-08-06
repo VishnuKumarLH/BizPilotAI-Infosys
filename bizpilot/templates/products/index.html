@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% from "components/icons.html" import icon %}
+{% from "components/topbar.html" import topbar %}
+{% block title %}Products · BizPilot AI{% endblock %}
+{% block content %}
+<main class="management-page">
+  {{ topbar('Products', 'Products, pricing, and stock health', 'Business data /', 'Add product', 'productDialog') }}
+  <div class="management-content">
+    {% set low_count = products|selectattr('stock_status', 'equalto', 'low_stock')|list|length %}
+    {% set out_count = products|selectattr('stock_status', 'equalto', 'out_of_stock')|list|length %}
+    <section class="metric-strip" aria-label="Product summary">
+      <article><span class="metric-icon blue">{{ icon('package') }}</span><p><small>Active products</small><strong>{{ pagination.total }}</strong><em>Current catalog</em></p></article>
+      <article><span class="metric-icon amber">{{ icon('alert') }}</span><p><small>Low stock shown</small><strong>{{ low_count }}</strong><em>At or below reorder point</em></p></article>
+      <article><span class="metric-icon red">{{ icon('x') }}</span><p><small>Out of stock shown</small><strong>{{ out_count }}</strong><em>Needs attention</em></p></article>
+    </section>
+
+    <section class="data-panel">
+      <div class="data-toolbar">
+        <div><h1>Product catalog</h1><p>Track every product from purchase cost to shelf availability.</p></div>
+        <form class="filter-row" method="get">
+          <label class="search-field">{{ icon('search') }}<input name="search" value="{{ request.args.get('search', '') }}" placeholder="Search product or SKU" aria-label="Search products"></label>
+          <select name="category" aria-label="Filter by category">
+            <option value="">All categories</option>
+            {% for category in categories %}<option value="{{ category.id }}" {% if request.args.get('category') == category.id|string %}selected{% endif %}>{{ category.name }}</option>{% endfor %}
+          </select>
+          <select name="status" aria-label="Filter by stock status">
+            <option value="">All stock</option>
+            <option value="sufficient" {% if request.args.get('status') == 'sufficient' %}selected{% endif %}>Sufficient</option>
+            <option value="low_stock" {% if request.args.get('status') == 'low_stock' %}selected{% endif %}>Low stock</option>
+            <option value="out_of_stock" {% if request.args.get('status') == 'out_of_stock' %}selected{% endif %}>Out of stock</option>
+          </select>
+          <button class="btn btn-secondary" type="submit">Filter</button>
+        </form>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Product</th><th>Category</th><th>Variant</th><th>Stock</th><th>Selling price</th><th>Margin</th><th>Status</th><th class="actions-col">Actions</th></tr></thead>
+          <tbody>
+          {% for product in products %}
+            <tr>
+              <td data-label="Product"><div class="product-cell"><span>{{ product.name[0] }}</span><p><strong>{{ product.name }}</strong><small>{{ product.sku }}</small></p></div></td>
+              <td data-label="Category">{{ product.category.name if product.category else 'Uncategorised' }}</td>
+              <td data-label="Variant"><strong>{{ product.size or '—' }}</strong><small class="cell-sub">{{ product.color or '—' }} · {{ product.fabric_type or '—' }}</small></td>
+              <td data-label="Stock"><strong>{{ product.stock_quantity }}</strong><small class="cell-sub">Reorder at {{ product.reorder_level }}</small></td>
+              <td data-label="Price">₹{{ "{:,.0f}".format(product.selling_price) }}<small class="cell-sub">Cost ₹{{ "{:,.0f}".format(product.purchase_price) }}</small></td>
+              <td data-label="Margin">{{ product.margin_percent }}%</td>
+              <td data-label="Status"><span class="status-badge {{ product.stock_status }}">{{ product.stock_status|replace('_', ' ')|title }}</span></td>
+              <td class="row-actions" data-label="Actions">
+                <button class="icon-btn edit-button" type="button" data-dialog-open="productDialog" data-record-id="{{ product.id }}" data-fields="{{ product.to_dict()|tojson|forceescape }}" aria-label="Edit {{ product.name }}">{{ icon('edit') }}</button>
+                <button class="icon-btn delete-button" type="button" data-delete-url="{{ url_for('products.product_detail', product_id=product.id) }}" data-delete-name="{{ product.name }}" aria-label="Archive {{ product.name }}">{{ icon('trash') }}</button>
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="8"><div class="empty-table"><span>{{ icon('package') }}</span><strong>No products found</strong><p>Add a product or change the current filters.</p></div></td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% include "partials/pagination.html" %}
+    </section>
+  </div>
+</main>
+
+<dialog class="app-dialog" id="productDialog">
+  <form class="api-form" data-create-endpoint="{{ url_for('products.product_collection') }}" method="dialog">
+    <header><div><p class="kicker">Inventory record</p><h2 data-dialog-title>Add product</h2></div><button class="icon-btn" type="button" data-dialog-close aria-label="Close product form">{{ icon('x') }}</button></header>
+    <div class="dialog-body form-grid">
+      <label class="span-2">Product name<input name="name" required placeholder="Premium Cotton Formal Shirt"></label>
+      <label>Category<select name="category_id" required><option value="">Select category</option>{% for category in categories %}<option value="{{ category.id }}">{{ category.name }}</option>{% endfor %}</select></label>
+      <label>SKU<input name="sku" placeholder="Auto-generated if blank"></label>
+      <label>Size<input name="size" placeholder="M, L, XL, 32..."></label>
+      <label>Colour<input name="color" placeholder="Navy"></label>
+      <label>Fabric<input name="fabric_type" placeholder="Cotton"></label>
+      <label>Purchase price (₹)<input name="purchase_price" type="number" min="0" step="0.01" required></label>
+      <label>Selling price (₹)<input name="selling_price" type="number" min="0" step="0.01" required></label>
+      <label>Current stock<input name="stock_quantity" type="number" min="0" value="0" required></label>
+      <label>Reorder level<input name="reorder_level" type="number" min="0" value="10" required></label>
+      <label>Maximum stock<input name="max_stock_level" type="number" min="1" value="100" required></label>
+      <label class="span-2">Description<textarea name="description" rows="3" placeholder="Fit, finish, and ideal use"></textarea></label>
+    </div>
+    <footer><button class="btn btn-ghost" type="button" data-dialog-close>Cancel</button><button class="btn btn-primary" type="submit">Save product</button></footer>
+  </form>
+</dialog>
+{% endblock %}

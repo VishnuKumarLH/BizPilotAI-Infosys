@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% from "components/icons.html" import icon %}
+{% block title %}Agent History · BizPilot AI{% endblock %}
+{% block content %}
+<main class="milestone-page">
+  <header class="topbar milestone-topbar">
+    <div class="topbar-title">
+      <button class="icon-btn mobile-nav-toggle" id="mobileNavToggle" type="button" aria-label="Open navigation">{{ icon('menu') }}</button>
+      <div><strong>Agent History</strong><small>Traceable multi-agent decisions</small></div>
+    </div>
+    <a class="btn btn-primary" href="{{ url_for('main.index') }}">{{ icon('plus') }} New decision</a>
+  </header>
+
+  <section class="milestone-content">
+    <div class="page-intro-card">
+      <span class="page-intro-icon">{{ icon('workflow') }}</span>
+      <div><p class="kicker">Milestone 3</p><h1>Coordinated workflow runs</h1><p>Inspect plans, evidence, decisions, agent steps, tools, provider fallback, and confidence.</p></div>
+    </div>
+
+    {% if workflows %}
+    <div class="workflow-history-list">
+      {% for run in workflows %}
+      {% set details = workflow_details.get(run.workflow_id, {}) %}
+      <article class="workflow-history-card">
+        <div class="workflow-history-head">
+          <div><span class="status-pill status-{{ run.status }}">{{ run.status|replace('_', ' ')|title }}</span><h2>{{ run.user_query }}</h2><code>{{ run.workflow_id }}</code></div>
+          <div class="workflow-score"><strong>{{ (run.confidence|float * 100)|round|int }}%</strong><small>Confidence</small></div>
+        </div>
+        <div class="workflow-meta-grid">
+          <span><small>Intent</small><strong>{{ run.intent|replace('_', ' ')|title }}</strong></span>
+          <span><small>Provider</small><strong>{{ run.provider_used|replace('_', ' ')|title }}</strong></span>
+          <span><small>Fallback</small><strong>{{ 'Used' if run.fallback_used else 'Not used' }}</strong></span>
+          <span><small>Duration</small><strong>{{ run.execution_time_ms }} ms</strong></span>
+          <span><small>Started</small><strong>{{ run.started_at.strftime('%d %b %Y, %I:%M %p') }}</strong></span>
+          <span><small>Session</small><strong>#{{ run.session_id or '—' }}</strong></span>
+        </div>
+        <div class="agent-flow-strip" aria-label="Agent flow">
+          {% for label in ['Planning', 'Research', 'Analysis & Decision', 'Response'] %}<span>{{ label }}</span>{% if not loop.last %}<b>→</b>{% endif %}{% endfor %}
+        </div>
+        <div class="chip-row"><small>Agents</small>{% for agent in run.agents_used_json %}<span class="source-chip">{{ agent|replace('_', ' ')|title }}</span>{% endfor %}</div>
+        <div class="chip-row"><small>Tools</small>{% for tool in run.tools_used_json %}<span class="source-chip">{{ tool|replace('_tool', '')|replace('_', ' ')|title }}</span>{% else %}<span class="muted">No external tools</span>{% endfor %}</div>
+
+        <details class="history-detail">
+          <summary>{{ icon('eye') }} View workflow details</summary>
+          <div class="history-detail-grid">
+            <section><h3>Plan</h3><p><strong>{{ run.plan_json.get('objective', 'No objective recorded') }}</strong></p><ol>{% for step in run.plan_json.get('steps', []) %}<li>{{ step }}</li>{% endfor %}</ol></section>
+            <section><h3>Decision</h3><p>{{ run.decision_json.get('final_decision', run.decision_json.get('decision', 'No decision recorded')) }}</p><h4>Recommended actions</h4><ol>{% for action in run.decision_json.get('recommended_actions', run.decision_json.get('recommendations', [])) %}<li>{{ action }}</li>{% endfor %}</ol></section>
+            <section><h3>Evidence</h3><div class="json-summary">{% for name, value in run.evidence_json.items() %}<p><strong>{{ name|replace('_tool', '')|replace('_', ' ')|title }}</strong><span>{{ value|length if value is iterable and value is not string else 'Available' }} result(s)</span></p>{% else %}<p>No evidence recorded.</p>{% endfor %}</div></section>
+            <section><h3>Warnings & limitations</h3><ul>{% for warning in run.warnings_json %}<li>{{ warning }}</li>{% else %}<li>No warnings.</li>{% endfor %}</ul></section>
+          </div>
+          <section class="step-timeline"><h3>Agent execution steps</h3>{% for step in details.get('steps', []) %}<div><span>{{ step.step_order }}</span><p><strong>{{ step.agent_name|replace('_', ' ')|title }}</strong><small>{{ step.status|title }} · {{ step.execution_time_ms }} ms{% if step.error_message %} · Limited fallback used{% endif %}</small></p></div>{% endfor %}</section>
+          <section><h3>Tool calls</h3><div class="tool-call-grid">{% for tool in details.get('tools', []) %}<div><strong>{{ tool.tool_name|replace('_tool', '')|replace('_', ' ')|title }}</strong><span class="status-pill status-{{ tool.status }}">{{ tool.status|title }}</span><small>{{ tool.output_summary }} · {{ tool.execution_time_ms }} ms</small></div>{% else %}<p class="muted">This workflow did not need a business tool.</p>{% endfor %}</div></section>
+        </details>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state-card"><span>{{ icon('workflow') }}</span><h2>No workflow runs yet</h2><p>Ask a question in the AI Decision Center to create the first trace.</p><a class="btn btn-primary" href="{{ url_for('main.index') }}">Run a decision</a></div>
+    {% endif %}
+  </section>
+</main>
+{% endblock %}

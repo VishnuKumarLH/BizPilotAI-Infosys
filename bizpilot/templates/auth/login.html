@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% from "components/icons.html" import icon %}
+{% block title %}Sign in · BizPilot AI{% endblock %}
+{% block content %}
+<main class="auth-page">
+  <section class="auth-brand-panel">
+    <div class="auth-brand-inner">
+      <a class="auth-logo" href="{{ url_for('auth.login') }}"><span class="brand-mark"><img src="{{ url_for('static', filename='images/bizpilot-ai-logo.png') }}" alt=""></span><span><strong>BizPilot AI</strong><small>Decision Engine</small></span></a>
+      <span class="eyebrow">{{ icon('sparkles') }} Explainable business intelligence</span>
+      <h1>Make the next business decision with confidence.</h1>
+      <p>Five focused agents connect your sales, stock, expenses, feedback, and local context into one clear recommendation.</p>
+      <div class="pipeline-preview" aria-label="Five-agent workflow">
+        <span>Understand</span><b>→</b><span>Plan</span><b>→</b><span>Retrieve</span><b>→</b><span>Decide</span><b>→</b><span>Respond</span>
+      </div>
+    </div>
+  </section>
+  <section class="auth-form-panel">
+    <div class="auth-card">
+      <div><p class="kicker">Welcome back</p><h2>Sign in to your workspace</h2><p class="subtle">Use your business account to continue.</p></div>
+      <form method="post" class="stack-form">
+        <label>Email or username<input type="text" name="email" value="{{ email or '' }}" placeholder="demo@stylehub.com" autocomplete="username" required autofocus></label>
+        <label>Password<span class="password-field"><input type="password" name="password" placeholder="Enter your password" autocomplete="current-password" required><button type="button" class="password-toggle" aria-label="Show password">Show</button></span></label>
+        <label class="check-label"><input type="checkbox" name="remember"> Keep me signed in</label>
+        <button class="btn btn-primary btn-wide" type="submit">Sign in {{ icon('arrow-up-right') }}</button>
+      </form>
+      <div class="demo-hint"><span>Demo access</span><code>demo@stylehub.com</code><code>demo123</code></div>
+      <p class="auth-switch">New to BizPilot? <a href="{{ url_for('auth.register') }}">Create an account</a></p>
+    </div>
+  </section>
+</main>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% from "components/icons.html" import icon %}
+<button class="drawer-backdrop history-backdrop" id="historyBackdrop" type="button" aria-label="Close recent decisions" tabindex="-1"></button>
+<aside class="history-sidebar" id="historySidebar" aria-label="Recent decisions" data-testid="history-panel">
+  <div class="history-header">
+    <div><h2>Recent Decisions <span class="history-count" id="historyCount"></span></h2><small>Saved AI runs from your workspace</small></div>
+    <button class="icon-btn" id="closeHistory" type="button" aria-label="Close recent decisions" title="Close recent decisions">{{ icon('chevron-right') }}</button>
+  </div>
+  <button class="btn btn-secondary btn-wide history-new-button" id="newChatButton" type="button">{{ icon('plus') }} New decision</button>
+  <label class="search-field history-search">{{ icon('search') }}<input id="historySearch" type="search" placeholder="Search recent decisions" aria-label="Search recent decisions"></label>
+  <div class="history-list" id="historyList" aria-live="polite">
+    <div class="history-skeleton"></div><div class="history-skeleton short"></div><div class="history-skeleton"></div>
+  </div>
+  <div class="history-foot">
+    <span class="history-foot-icon">{{ icon('workflow') }}</span>
+    <p><strong>Explainable decisions</strong><small>Each response keeps its workflow, sources, and confidence.</small></p>
+  </div>
+</aside>

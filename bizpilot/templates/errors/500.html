@@ -1,0 +1,3 @@
+{% extends "base.html" %}
+{% block title %}Something went wrong · BizPilot AI{% endblock %}
+{% block content %}<main class="error-page"><span>500</span><h1>We hit an unexpected problem.</h1><p>Your data is safe. Return to the workspace and try again.</p><a class="btn btn-primary" href="{{ url_for('main.index') }}">Return to BizPilot</a></main>{% endblock %}

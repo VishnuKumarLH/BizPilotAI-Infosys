@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% from "components/icons.html" import icon %}
+{% block title %}Memory · BizPilot AI{% endblock %}
+{% block content %}
+<main class="milestone-page">
+  <header class="topbar milestone-topbar">
+    <div class="topbar-title">
+      <button class="icon-btn mobile-nav-toggle" id="mobileNavToggle" type="button" aria-label="Open navigation">{{ icon('menu') }}</button>
+      <div><strong>Agent Memory</strong><small>Recent context and reusable decisions</small></div>
+    </div>
+    <a class="btn btn-primary" href="{{ url_for('main.index') }}">{{ icon('plus') }} New decision</a>
+  </header>
+
+  <section class="milestone-content">
+    <div class="page-intro-card">
+      <span class="page-intro-icon">{{ icon('history') }}</span>
+      <div><p class="kicker">Shared memory</p><h1>What BizPilot remembers</h1><p>Short-term messages support follow-ups. Evidence-backed decisions are kept as searchable long-term memory.</p></div>
+    </div>
+
+    <div class="memory-section-head"><div><h2>Short-term memory</h2><p>Latest {{ short_term|length }} message(s) from session #{{ active_session_id or '—' }}</p></div>{% if active_session_id %}<button class="btn btn-danger-outline" type="button" data-clear-session="{{ active_session_id }}">{{ icon('trash') }} Clear session memory</button>{% endif %}</div>
+    <div class="short-memory-list">
+      {% for message in short_term %}
+      <article class="memory-message memory-role-{{ message.role }}"><div><strong>{{ 'You' if message.role == 'user' else 'BizPilot AI' }}</strong><small>{{ message.created_display }}</small></div><p>{{ message.content }}</p>{% if message.workflow_id %}<code>{{ message.workflow_id }}</code>{% endif %}</article>
+      {% else %}<div class="empty-inline">No recent messages are stored for this session.</div>{% endfor %}
+    </div>
+
+    <div class="memory-section-head long-memory-heading"><div><h2>Long-term memory</h2><p>Deduplicated decisions that can inform later questions</p></div></div>
+    <form class="memory-search-form" method="get" action="{{ url_for('agent.memory_page') }}"><label class="search-field">{{ icon('search') }}<input type="search" name="q" value="{{ memory_query }}" placeholder="Search decisions, products, or intents" aria-label="Search long-term memory"></label><button class="btn btn-secondary" type="submit">Search</button>{% if memory_query %}<a class="btn btn-ghost" href="{{ url_for('agent.memory_page') }}">Clear</a>{% endif %}</form>
+    <div class="long-memory-grid">
+      {% for memory in long_term %}
+      <article class="long-memory-card" data-memory-card="{{ memory.id }}">
+        <div class="long-memory-head"><span class="status-pill">{{ memory.memory_type|replace('_', ' ')|title }}</span><button class="icon-btn" type="button" data-delete-memory="{{ memory.id }}" aria-label="Delete {{ memory.title }}">{{ icon('trash') }}</button></div>
+        <h3>{{ memory.title }}</h3><p>{{ memory.summary }}</p>
+        <div class="chip-row">{% for tag in memory.tags %}<span class="source-chip">{{ tag|replace('_tool', '')|replace('_', ' ')|title }}</span>{% endfor %}</div>
+        <dl><div><dt>Importance</dt><dd>{{ (memory.importance * 100)|round|int }}%</dd></div><div><dt>Confidence</dt><dd>{{ (memory.confidence * 100)|round|int }}%</dd></div><div><dt>Used</dt><dd>{{ memory.usage_count }} time(s)</dd></div></dl>
+        <small>Updated {{ memory.updated_display }}{% if memory.source_workflow_id %} · Workflow {{ memory.source_workflow_id }}{% endif %}</small>
+      </article>
+      {% else %}<div class="empty-inline wide">{% if memory_query %}No long-term memory matches “{{ memory_query }}”.{% else %}Run an evidence-backed decision to create long-term memory.{% endif %}</div>{% endfor %}
+    </div>
+  </section>
+</main>
+{% endblock %}
