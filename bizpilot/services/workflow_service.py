@@ -94,6 +94,7 @@ class WorkflowService:
             evidence_json=state.get("evidence", {}),
             analysis_json=state.get("analysis", {}),
             decision_json=state.get("decision", {}),
+            lifecycle_events_json=state.get("lifecycle_events", []),
             final_response=state.get("final_response", ""),
             agents_used_json=state.get("agents_used", []),
             tools_used_json=state.get("tools_used", []),

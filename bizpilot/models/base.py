@@ -1,4 +1,4 @@
-"""SQLAlchemy data model for BizPilot AI."""
+"""SQLAlchemy data models for core business and agent features."""
 
 from __future__ import annotations
 
@@ -11,8 +11,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from .extensions import db
-
+from ..extensions import db
 
 JSON_TYPE = JSON().with_variant(JSONB, "postgresql")
 
@@ -390,9 +389,9 @@ class AgentExecutionLog(TimestampMixin, db.Model):
     user_id: Mapped[int] = mapped_column(
         db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    message_id: Mapped[int] = mapped_column(
+    message_id: Mapped[int | None] = mapped_column(
         db.ForeignKey("chat_messages.id", ondelete="CASCADE"),
-        nullable=False,
+        nullable=True,
         index=True,
     )
     agent_name: Mapped[str] = mapped_column(db.String(50), nullable=False)
@@ -403,7 +402,7 @@ class AgentExecutionLog(TimestampMixin, db.Model):
     status: Mapped[str] = mapped_column(db.String(20), default="success", nullable=False)
     error_message: Mapped[str | None] = mapped_column(db.Text)
 
-    message: Mapped[ChatMessage] = relationship(back_populates="execution_logs")
+    message: Mapped[ChatMessage | None] = relationship(back_populates="execution_logs")
 
 
 class BusinessInsight(TimestampMixin, db.Model):
@@ -443,6 +442,9 @@ class AgentWorkflowRun(TimestampMixin, db.Model):
     evidence_json: Mapped[dict] = mapped_column(JSON_TYPE, default=dict, nullable=False)
     analysis_json: Mapped[dict] = mapped_column(JSON_TYPE, default=dict, nullable=False)
     decision_json: Mapped[dict] = mapped_column(JSON_TYPE, default=dict, nullable=False)
+    lifecycle_events_json: Mapped[list] = mapped_column(
+        JSON_TYPE, default=list, nullable=False
+    )
     final_response: Mapped[str] = mapped_column(db.Text, default="", nullable=False)
     agents_used_json: Mapped[list] = mapped_column(JSON_TYPE, default=list, nullable=False)
     tools_used_json: Mapped[list] = mapped_column(JSON_TYPE, default=list, nullable=False)
@@ -473,6 +475,7 @@ class AgentWorkflowRun(TimestampMixin, db.Model):
             "confidence": float(self.confidence),
             "warnings": self.warnings_json,
             "errors": self.errors_json,
+            "lifecycle_events": self.lifecycle_events_json,
             "started_at": self.started_at.isoformat(),
             "completed_at": self.completed_at.isoformat() if self.completed_at else None,
             "execution_time_ms": self.execution_time_ms,

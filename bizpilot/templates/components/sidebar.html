@@ -27,12 +27,17 @@
     <a class="nav-item {% if page_name == 'chat' %}active{% endif %}" href="{{ url_for('main.index') }}" data-tooltip="AI Decision Center"{% if page_name == 'chat' %} aria-current="page"{% endif %}>
       <span class="nav-icon">{{ icon('sparkles') }}</span><span class="nav-label">AI Decision Center</span>
     </a>
+    <a class="nav-item {% if page_name == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard.dashboard_page') }}" data-tooltip="Dashboard"{% if page_name == 'dashboard' %} aria-current="page"{% endif %}>
+      <span class="nav-icon">{{ icon('dashboard') }}</span><span class="nav-label">Dashboard</span>
+    </a>
+
     <a class="nav-item {% if page_name == 'agent_history' %}active{% endif %}" href="{{ url_for('agent.history_page') }}" data-tooltip="Agent History"{% if page_name == 'agent_history' %} aria-current="page"{% endif %}>
       <span class="nav-icon">{{ icon('workflow') }}</span><span class="nav-label">Agent History</span>
     </a>
     <a class="nav-item {% if page_name == 'memory' %}active{% endif %}" href="{{ url_for('agent.memory_page') }}" data-tooltip="Memory"{% if page_name == 'memory' %} aria-current="page"{% endif %}>
       <span class="nav-icon">{{ icon('history') }}</span><span class="nav-label">Memory</span>
     </a>
+
     <p class="nav-section nav-label">Business data</p>
     <a class="nav-item {% if page_name == 'products' %}active{% endif %}" href="{{ url_for('products.product_collection') }}" data-tooltip="Products"{% if page_name == 'products' %} aria-current="page"{% endif %}>
       <span class="nav-icon">{{ icon('package') }}</span><span class="nav-label">Products</span>

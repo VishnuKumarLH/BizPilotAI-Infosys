@@ -5,11 +5,52 @@ from __future__ import annotations
 from datetime import date
 from decimal import Decimal, InvalidOperation
 
-from flask import request
+from functools import wraps
+from flask import current_app, jsonify, request
+from flask_login import current_user
+
+
+def api_key_required(f):
+    """Decorator requiring either an authenticated user session or a valid API key header."""
+
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if current_user.is_authenticated:
+            return f(*args, **kwargs)
+
+        expected_key = current_app.config.get("API_KEY")
+        if not expected_key:
+            return f(*args, **kwargs)
+
+        provided_key = (
+            request.headers.get("X-API-Key")
+            or request.headers.get("X-Api-Key")
+            or request.args.get("api_key")
+        )
+
+        auth_header = request.headers.get("Authorization", "")
+        if not provided_key and auth_header.startswith("Bearer "):
+            provided_key = auth_header[7:].strip()
+
+        if provided_key and provided_key == expected_key:
+            return f(*args, **kwargs)
+
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "error": "Unauthorized. A valid API key or active login session is required.",
+                }
+            ),
+            401,
+        )
+
+    return decorated
 
 
 def request_data() -> dict:
     return request.get_json(silent=True) or request.form.to_dict()
+
 
 
 def wants_json() -> bool:

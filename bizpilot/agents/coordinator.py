@@ -225,6 +225,14 @@ class WorkflowCoordinator:
         )
         coordination_started = perf_counter()
         coordination = self.classifier.classify(query)
+        lifecycle = [
+            self._lifecycle_event("CREATED", started_at, "Coordinator accepted the request."),
+            self._lifecycle_event(
+                "PLANNING",
+                datetime.now(timezone.utc),
+                "Planning Agent selected the required business evidence.",
+            ),
+        ]
         coordination_log = {
             "agent_name": "coordinator",
             "execution_order": 1,
@@ -252,6 +260,7 @@ class WorkflowCoordinator:
             "execution_trace": ["Coordinator"],
             "agent_step_logs": [coordination_log],
             "tool_call_logs": [],
+            "lifecycle_events": lifecycle,
             "provider_used": "rule_based",
             "fallback_used": False,
             "confidence": 0.0,
@@ -274,7 +283,19 @@ class WorkflowCoordinator:
         completed_at = datetime.now(timezone.utc)
         state["completed_at"] = completed_at.isoformat()
         state["execution_time_ms"] = round((perf_counter() - started) * 1000)
-        state["status"] = "completed" if state.get("final_response") else "failed"
+        if state.get("final_response") and state.get("errors"):
+            state["status"] = "partial"
+        else:
+            state["status"] = "completed" if state.get("final_response") else "failed"
+        terminal_status = "COMPLETED" if state["status"] == "completed" else state["status"].upper()
+        state["lifecycle_events"] = [
+            *state.get("lifecycle_events", []),
+            self._lifecycle_event(
+                terminal_status,
+                completed_at,
+                f"Workflow finished with {state['status']} status.",
+            ),
+        ]
         if state.get("response"):
             state["response"]["execution_time_ms"] = state["execution_time_ms"]
             state["response"]["status"] = state["status"]
@@ -339,6 +360,18 @@ class WorkflowCoordinator:
             error = type(exc).__name__
             output = self._graceful_node_failure(state, name)
         elapsed = round((perf_counter() - started) * 1000)
+        lifecycle_status = {
+            "planning_agent": "RESEARCHING",
+            "research_agent": "ANALYZING",
+            "analysis_decision_agent": "VALIDATING",
+            "response_agent": "RESPONDING",
+        }[name]
+        lifecycle_summary = {
+            "planning_agent": "Planning completed; research/tool execution is next.",
+            "research_agent": "Research and tool execution completed; analysis is next.",
+            "analysis_decision_agent": "Decision validation completed; response is next.",
+            "response_agent": "Response Agent prepared the owner-facing answer.",
+        }[name]
         log = {
             "agent_name": self.STEP_LOG_NAMES[name],
             "execution_order": order,
@@ -355,6 +388,14 @@ class WorkflowCoordinator:
             "error_message": error,
         }
         output["agent_step_logs"] = [*state.get("agent_step_logs", []), log]
+        output["lifecycle_events"] = [
+            *state.get("lifecycle_events", []),
+            self._lifecycle_event(
+                lifecycle_status,
+                datetime.now(timezone.utc),
+                lifecycle_summary,
+            ),
+        ]
         logger.info(
             "Workflow %s agent %s completed status=%s in %sms",
             state["workflow_id"],
@@ -444,4 +485,12 @@ class WorkflowCoordinator:
             "workflow_id": workflow_id,
             "warnings": ["A workflow step was unavailable."],
             "execution_steps": ["Coordinator"],
+        }
+
+    @staticmethod
+    def _lifecycle_event(status: str, timestamp: datetime, summary: str) -> dict:
+        return {
+            "status": status,
+            "timestamp": timestamp.isoformat(),
+            "summary": summary,
         }

@@ -227,17 +227,21 @@ html[data-theme="dark"] .theme-switch { background: #232832; }
 .account-menu > a:hover { background: var(--surface-hover); color: var(--text-primary); }
 .account-menu > a .icon { width: 15px; height: 15px; }
 
-body.nav-collapsed .left-sidebar { width: var(--sidebar-collapsed-width); }
-body.nav-collapsed .workspace { margin-left: var(--sidebar-collapsed-width); }
-body.nav-collapsed .brand, body.nav-collapsed .sidebar-search, body.nav-collapsed .theme-switch, body.nav-collapsed .nav-label, body.nav-collapsed .account-copy, body.nav-collapsed .account-menu-dots { display: none; }
-body.nav-collapsed .brand-row { justify-content: center; padding-inline: 0; }
-body.nav-collapsed .primary-nav { padding-inline: 11px; }
-body.nav-collapsed .nav-section { height: 7px; margin: 0; }
-body.nav-collapsed .nav-item, body.nav-collapsed .sidebar-new-chat, body.nav-collapsed .account-card { justify-content: center; padding-inline: 0; }
-body.nav-collapsed .sidebar-new-chat { margin-inline: 11px; }
-body.nav-collapsed .nav-item { overflow: visible; }
-body.nav-collapsed .nav-item::after, body.nav-collapsed .sidebar-new-chat::after { position: absolute; left: calc(100% + 8px); z-index: 80; padding: 7px 9px; border-radius: 7px; background: var(--text-primary); box-shadow: var(--shadow-md); color: var(--surface); content: attr(data-tooltip); font-size: 10px; opacity: 0; pointer-events: none; transform: translateX(-4px); transition: opacity .15s ease, transform .15s ease; }
-body.nav-collapsed .nav-item:hover::after, body.nav-collapsed .sidebar-new-chat:hover::after { opacity: 1; transform: none; }
+@media (min-width: 1200px) {
+  body.nav-collapsed .left-sidebar { width: var(--sidebar-collapsed-width); overflow: visible; }
+  body.nav-collapsed .workspace { margin-left: var(--sidebar-collapsed-width); }
+  body.nav-collapsed .brand, body.nav-collapsed .sidebar-search, body.nav-collapsed .theme-switch, body.nav-collapsed .nav-label, body.nav-collapsed .account-copy, body.nav-collapsed .account-menu-dots { display: none; }
+  body.nav-collapsed .brand-row { justify-content: center; padding-inline: 0; }
+  body.nav-collapsed .primary-nav { padding-inline: 11px; overflow: visible; }
+  body.nav-collapsed .nav-section { height: 7px; margin: 0; }
+  body.nav-collapsed .nav-item, body.nav-collapsed .sidebar-new-chat, body.nav-collapsed .account-card { justify-content: center; padding-inline: 0; }
+  body.nav-collapsed .sidebar-new-chat { margin-inline: 11px; }
+  body.nav-collapsed .nav-item { position: relative; overflow: visible; }
+  body.nav-collapsed .nav-item::after, body.nav-collapsed .sidebar-new-chat::after { position: absolute; left: calc(100% + 10px); top: 50%; z-index: 100; padding: 6px 10px; border-radius: 7px; background: var(--text-primary); box-shadow: var(--shadow-md); color: var(--surface); content: attr(data-tooltip); font-size: 11px; font-weight: 500; white-space: nowrap; opacity: 0; pointer-events: none; transform: translateY(-50%) translateX(-4px); transition: opacity .15s ease, transform .15s ease; }
+  body.nav-collapsed .nav-item:hover::after, body.nav-collapsed .sidebar-new-chat:hover::after { opacity: 1; transform: translateY(-50%) translateX(0); }
+  body.nav-collapsed .account-menu { position: absolute; left: calc(100% + 10px); right: auto; bottom: 12px; z-index: 110; width: 220px; }
+}
+
 
 .drawer-backdrop { position: fixed; inset: 0; z-index: 35; border: 0; background: rgba(16, 24, 40, .38); opacity: 0; visibility: hidden; pointer-events: none; backdrop-filter: blur(2px); transition: opacity .22s ease, visibility .22s ease; }
 .mobile-nav-toggle { display: none; }
@@ -599,19 +603,21 @@ html[data-theme="dark"] .auth-metric-grid div { background: rgba(30,34,42,.75); 
 }
 
 @media (max-width: 1199px) {
-  .left-sidebar { z-index: 90; width: min(var(--sidebar-width), 88vw); transform: translateX(-105%); box-shadow: var(--shadow-lg); }
-  .workspace { margin-left: 0 !important; }
+  .left-sidebar, body.nav-collapsed .left-sidebar { z-index: 90; width: min(var(--sidebar-width), 88vw) !important; transform: translateX(-105%); box-shadow: var(--shadow-lg); }
+  .workspace, body.nav-collapsed .workspace { margin-left: 0 !important; }
   .mobile-nav-toggle { display: inline-grid; }
   .sidebar-toggle { display: inline-grid; }
-  body.mobile-nav-open .left-sidebar { transform: translateX(0); }
+  body.mobile-nav-open .left-sidebar, body.mobile-nav-open.nav-collapsed .left-sidebar { transform: translateX(0) !important; }
   body.mobile-nav-open .nav-backdrop { opacity: 1; visibility: visible; pointer-events: auto; }
-  body.nav-collapsed .brand { display: flex; }
-  body.nav-collapsed .sidebar-search { display: flex; }
-  body.nav-collapsed .theme-switch { display: grid; }
-  body.nav-collapsed .nav-label, body.nav-collapsed .account-copy, body.nav-collapsed .account-menu-dots { display: flex; }
-  body.nav-collapsed .brand-row { justify-content: space-between; padding-inline: 17px 14px; }
-  body.nav-collapsed .nav-item, body.nav-collapsed .sidebar-new-chat, body.nav-collapsed .account-card { justify-content: flex-start; padding-inline: 11px; }
-  body.nav-collapsed .nav-item::after, body.nav-collapsed .sidebar-new-chat::after { display: none; }
+  body.nav-collapsed .brand { display: flex !important; }
+  body.nav-collapsed .sidebar-search { display: flex !important; }
+  body.nav-collapsed .theme-switch { display: grid !important; }
+  body.nav-collapsed .nav-label, body.nav-collapsed .account-copy, body.nav-collapsed .account-menu-dots { display: flex !important; }
+  body.nav-collapsed .brand-row { justify-content: space-between !important; padding-inline: 17px 14px !important; }
+  body.nav-collapsed .nav-item, body.nav-collapsed .sidebar-new-chat, body.nav-collapsed .account-card { justify-content: flex-start !important; padding-inline: 11px !important; }
+  body.nav-collapsed .nav-item::after, body.nav-collapsed .sidebar-new-chat::after { display: none !important; }
+  body.nav-collapsed .account-menu { position: absolute; right: 12px !important; bottom: 78px !important; left: 12px !important; width: auto !important; }
+
   .chat-layout, body.history-closed .chat-layout { grid-template-columns: minmax(0, 1fr); }
   .history-sidebar, body.history-closed .history-sidebar { position: fixed; inset: 0 0 0 auto; z-index: 85; width: min(370px, 92vw); height: 100dvh; border-left-width: 1px; box-shadow: var(--shadow-lg); opacity: 1; visibility: visible; pointer-events: auto; }
   body.history-closed .history-sidebar { transform: translateX(105%); visibility: hidden; pointer-events: none; }

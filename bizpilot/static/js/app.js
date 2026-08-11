@@ -760,7 +760,7 @@
       input.disabled = value;
       sendButton.disabled = value || !input.value.trim();
       clearButton.disabled = value;
-      browsePrompts.disabled = value;
+      if (browsePrompts) browsePrompts.disabled = value;
       form.setAttribute("aria-busy", String(value));
     }
 

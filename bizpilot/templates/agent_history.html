@@ -14,7 +14,39 @@
   <section class="milestone-content">
     <div class="page-intro-card">
       <span class="page-intro-icon">{{ icon('workflow') }}</span>
-      <div><p class="kicker">Milestone 3</p><h1>Coordinated workflow runs</h1><p>Inspect plans, evidence, decisions, agent steps, tools, provider fallback, and confidence.</p></div>
+      <div><p class="kicker">Milestone 4</p><h1>Coordinated workflow runs</h1><p>Inspect lifecycle, plans, evidence, decisions, validation, agent steps, tools, provider fallback, and confidence.</p></div>
+    </div>
+
+    <div class="workflow-meta-grid">
+      <span><small>Total workflows</small><strong>{{ metrics.workflows.total }}</strong></span>
+      <span><small>Completed</small><strong>{{ metrics.workflows.completed }}</strong></span>
+      <span><small>Partial</small><strong>{{ metrics.workflows.partial }}</strong></span>
+      <span><small>Failed</small><strong>{{ metrics.workflows.failed }}</strong></span>
+      <span><small>Success rate</small><strong>{{ ((metrics.workflows.success_rate or 0) * 100)|round|int if metrics.workflows.total else 'N/A' }}{% if metrics.workflows.total %}%{% endif %}</strong></span>
+      <span><small>Fallback used</small><strong>{{ metrics.workflows.fallback_usage_count }}</strong></span>
+    </div>
+
+    <div class="history-detail-grid">
+      <section>
+        <h3>Agent monitoring</h3>
+        <div class="tool-call-grid">
+          {% for agent in metrics.agents %}
+          <div><strong>{{ agent.name|replace('_', ' ')|title }}</strong><span class="status-pill status-{{ agent.latest_status }}">{{ agent.latest_status|title }}</span><small>{{ agent.calls }} run(s) · {{ agent.success }} success · {{ agent.failed }} failed · {{ agent.average_duration_ms if agent.average_duration_ms is not none else 'N/A' }} ms avg</small></div>
+          {% else %}
+          <p class="muted">No agent executions recorded yet.</p>
+          {% endfor %}
+        </div>
+      </section>
+      <section>
+        <h3>Tool monitoring</h3>
+        <div class="tool-call-grid">
+          {% for tool in metrics.tools %}
+          <div><strong>{{ tool.name|replace('_tool', '')|replace('_', ' ')|title }}</strong><span class="status-pill status-{{ tool.latest_status }}">{{ tool.latest_status|title }}</span><small>{{ tool.calls }} call(s) · {{ tool.success }} success · {{ tool.failed }} failed · {{ tool.average_duration_ms if tool.average_duration_ms is not none else 'N/A' }} ms avg</small></div>
+          {% else %}
+          <p class="muted">No tool executions recorded yet.</p>
+          {% endfor %}
+        </div>
+      </section>
     </div>
 
     {% if workflows %}
@@ -35,7 +67,7 @@
           <span><small>Session</small><strong>#{{ run.session_id or '—' }}</strong></span>
         </div>
         <div class="agent-flow-strip" aria-label="Agent flow">
-          {% for label in ['Planning', 'Research', 'Analysis & Decision', 'Response'] %}<span>{{ label }}</span>{% if not loop.last %}<b>→</b>{% endif %}{% endfor %}
+          {% for label in ['Created', 'Planning', 'Research', 'Tool Execution', 'Analysis', 'Validation', 'Response', 'Completed'] %}<span>{{ label }}</span>{% if not loop.last %}<b>→</b>{% endif %}{% endfor %}
         </div>
         <div class="chip-row"><small>Agents</small>{% for agent in run.agents_used_json %}<span class="source-chip">{{ agent|replace('_', ' ')|title }}</span>{% endfor %}</div>
         <div class="chip-row"><small>Tools</small>{% for tool in run.tools_used_json %}<span class="source-chip">{{ tool|replace('_tool', '')|replace('_', ' ')|title }}</span>{% else %}<span class="muted">No external tools</span>{% endfor %}</div>
@@ -48,6 +80,7 @@
             <section><h3>Evidence</h3><div class="json-summary">{% for name, value in run.evidence_json.items() %}<p><strong>{{ name|replace('_tool', '')|replace('_', ' ')|title }}</strong><span>{{ value|length if value is iterable and value is not string else 'Available' }} result(s)</span></p>{% else %}<p>No evidence recorded.</p>{% endfor %}</div></section>
             <section><h3>Warnings & limitations</h3><ul>{% for warning in run.warnings_json %}<li>{{ warning }}</li>{% else %}<li>No warnings.</li>{% endfor %}</ul></section>
           </div>
+          <section class="step-timeline"><h3>Workflow lifecycle</h3>{% for event in run.lifecycle_events_json %}<div><span>{{ loop.index }}</span><p><strong>{{ event.status|replace('_', ' ')|title }}</strong><small>{{ event.summary }}</small></p></div>{% else %}<p class="muted">No lifecycle events recorded.</p>{% endfor %}</section>
           <section class="step-timeline"><h3>Agent execution steps</h3>{% for step in details.get('steps', []) %}<div><span>{{ step.step_order }}</span><p><strong>{{ step.agent_name|replace('_', ' ')|title }}</strong><small>{{ step.status|title }} · {{ step.execution_time_ms }} ms{% if step.error_message %} · Limited fallback used{% endif %}</small></p></div>{% endfor %}</section>
           <section><h3>Tool calls</h3><div class="tool-call-grid">{% for tool in details.get('tools', []) %}<div><strong>{{ tool.tool_name|replace('_tool', '')|replace('_', ' ')|title }}</strong><span class="status-pill status-{{ tool.status }}">{{ tool.status|title }}</span><small>{{ tool.output_summary }} · {{ tool.execution_time_ms }} ms</small></div>{% else %}<p class="muted">This workflow did not need a business tool.</p>{% endfor %}</div></section>
         </details>

@@ -28,6 +28,7 @@ class AgentWorkflowState(TypedDict, total=False):
     execution_trace: list[str]
     agent_step_logs: list[dict[str, Any]]
     tool_call_logs: list[dict[str, Any]]
+    lifecycle_events: list[dict[str, Any]]
     provider_used: str
     fallback_used: bool
     confidence: float

@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% from "components/icons.html" import icon %}
+
+{% block title %}Monitoring Dashboard | BizPilot AI{% endblock %}
+
+{% block content %}
+<div class="content-header">
+  <div class="content-title">
+    <h1>Monitoring & Execution Dashboard</h1>
+    <p class="text-muted">Real-time observability of automated LangGraph agent runs, tool latencies, and system health.</p>
+  </div>
+  <div class="content-actions">
+    <button class="btn btn-secondary" id="refreshDashboardBtn" type="button">
+      {{ icon('history') }} <span>Refresh Stats</span>
+    </button>
+    <a class="btn btn-primary" href="{{ url_for('main.index') }}">
+      {{ icon('sparkles') }} <span>New Decision</span>
+    </a>
+  </div>
+</div>
+
+<!-- Summary Metrics Grid -->
+<div class="metrics-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+  <div class="metric-card panel" style="padding: 1.25rem; border-radius: 12px; background: var(--bg-surface, #ffffff); border: 1px solid var(--border-color, #e5e7eb);">
+    <div style="font-size: 0.85rem; color: var(--text-muted, #6b7280); font-weight: 500;">Total Workflow Jobs</div>
+    <div id="statTotalJobs" style="font-size: 1.8rem; font-weight: 700; color: var(--text-heading, #111827); margin-top: 0.25rem;">0</div>
+  </div>
+  <div class="metric-card panel" style="padding: 1.25rem; border-radius: 12px; background: var(--bg-surface, #ffffff); border: 1px solid var(--border-color, #e5e7eb);">
+    <div style="font-size: 0.85rem; color: var(--text-muted, #6b7280); font-weight: 500;">Success Rate</div>
+    <div id="statSuccessRate" style="font-size: 1.8rem; font-weight: 700; color: #10b981; margin-top: 0.25rem;">100%</div>
+  </div>
+  <div class="metric-card panel" style="padding: 1.25rem; border-radius: 12px; background: var(--bg-surface, #ffffff); border: 1px solid var(--border-color, #e5e7eb);">
+    <div style="font-size: 0.85rem; color: var(--text-muted, #6b7280); font-weight: 500;">Active / Running</div>
+    <div id="statRunningJobs" style="font-size: 1.8rem; font-weight: 700; color: #3b82f6; margin-top: 0.25rem;">0</div>
+  </div>
+  <div class="metric-card panel" style="padding: 1.25rem; border-radius: 12px; background: var(--bg-surface, #ffffff); border: 1px solid var(--border-color, #e5e7eb);">
+    <div style="font-size: 0.85rem; color: var(--text-muted, #6b7280); font-weight: 500;">Failed Jobs</div>
+    <div id="statFailedJobs" style="font-size: 1.8rem; font-weight: 700; color: #ef4444; margin-top: 0.25rem;">0</div>
+  </div>
+  <div class="metric-card panel" style="padding: 1.25rem; border-radius: 12px; background: var(--bg-surface, #ffffff); border: 1px solid var(--border-color, #e5e7eb);">
+    <div style="font-size: 0.85rem; color: var(--text-muted, #6b7280); font-weight: 500;">Stored Memories</div>
+    <div id="statTotalMemories" style="font-size: 1.8rem; font-weight: 700; color: #8b5cf6; margin-top: 0.25rem;">0</div>
+  </div>
+</div>
+
+<!-- Charts Row -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+  <div class="panel" style="padding: 1.25rem; border-radius: 12px; background: var(--bg-surface, #ffffff); border: 1px solid var(--border-color, #e5e7eb);">
+    <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem;">Agent & Tool Execution Latency (ms)</h3>
+    <div style="height: 240px; position: relative;">
+      <canvas id="latencyChart"></canvas>
+    </div>
+  </div>
+  <div class="panel" style="padding: 1.25rem; border-radius: 12px; background: var(--bg-surface, #ffffff); border: 1px solid var(--border-color, #e5e7eb);">
+    <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem;">Job Status Breakdown</h3>
+    <div style="height: 240px; position: relative;">
+      <canvas id="statusChart"></canvas>
+    </div>
+  </div>
+  <div class="panel" style="padding: 1.25rem; border-radius: 12px; background: var(--bg-surface, #ffffff); border: 1px solid var(--border-color, #e5e7eb);">
+    <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem;">Memory Distribution</h3>
+    <div style="height: 240px; position: relative;">
+      <canvas id="memoryChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Real-Time Feed & Recent Jobs Split -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem;">
+  <!-- Recent Workflow Jobs -->
+  <div class="panel" style="padding: 1.25rem; border-radius: 12px; background: var(--bg-surface, #ffffff); border: 1px solid var(--border-color, #e5e7eb);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+      <h3 style="font-size: 1rem; font-weight: 600; margin: 0;">Recent Workflow Jobs</h3>
+      <span class="badge" style="font-size: 0.75rem; background: var(--bg-secondary, #f3f4f6); padding: 0.2rem 0.5rem; border-radius: 6px;">Live</span>
+    </div>
+    <div class="table-container" style="overflow-x: auto;">
+      <table class="table" style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
+        <thead>
+          <tr style="text-align: left; border-bottom: 1px solid var(--border-color, #e5e7eb);">
+            <th style="padding: 0.5rem;">Job ID</th>
+            <th style="padding: 0.5rem;">Source</th>
+            <th style="padding: 0.5rem;">Status</th>
+            <th style="padding: 0.5rem;">Duration</th>
+            <th style="padding: 0.5rem;">Summary</th>
+          </tr>
+        </thead>
+        <tbody id="recentJobsTableBody">
+          <tr><td colspan="5" style="padding: 1rem; text-align: center; color: var(--text-muted);">Loading workflow jobs...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Real-Time Live Agent Steps Feed -->
+  <div class="panel" style="padding: 1.25rem; border-radius: 12px; background: var(--bg-surface, #ffffff); border: 1px solid var(--border-color, #e5e7eb);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+      <h3 style="font-size: 1rem; font-weight: 600; margin: 0;">Real-Time Agent Step Stream</h3>
+      <span style="font-size: 0.75rem; color: #10b981; font-weight: 500;">Polling (5s)</span>
+    </div>
+    <div id="liveStepFeed" style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 340px; overflow-y: auto;">
+      <div style="padding: 0.75rem; text-align: center; color: var(--text-muted);">Listening for agent steps...</div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

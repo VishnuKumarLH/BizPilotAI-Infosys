@@ -24,12 +24,31 @@ class Config:
         "DATABASE_URL", f"sqlite:///{BASE_DIR / 'bizpilot.db'}"
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True}
+    
+    _db_uri = SQLALCHEMY_DATABASE_URI.lower()
+    if _db_uri.startswith("sqlite"):
+        SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True}
+    else:
+        SQLALCHEMY_ENGINE_OPTIONS = {
+            "pool_pre_ping": True,
+            "pool_size": int(os.getenv("DB_POOL_SIZE", "10")),
+            "max_overflow": int(os.getenv("DB_MAX_OVERFLOW", "20")),
+            "pool_recycle": int(os.getenv("DB_POOL_RECYCLE", "1800")),
+        }
+
+    PORT = int(os.getenv("PORT", "5000"))
+    FLASK_DEBUG = _as_bool(os.getenv("FLASK_DEBUG"), False)
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
     REMEMBER_COOKIE_HTTPONLY = True
     REMEMBER_COOKIE_SAMESITE = "Lax"
     MAX_CONTENT_LENGTH = 2 * 1024 * 1024
+
+    API_KEY = os.getenv("API_KEY", "bizpilot-secret-api-key")
+    WEBHOOK_URL = os.getenv("WEBHOOK_URL", "")
+    CACHE_TYPE = os.getenv("CACHE_TYPE", "SimpleCache")
+    CACHE_DEFAULT_TIMEOUT = int(os.getenv("CACHE_DEFAULT_TIMEOUT", "300"))
+    SCHEDULER_API_ENABLED = True
 
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
     GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
@@ -57,8 +76,12 @@ class TestConfig(Config):
     TESTING = True
     SECRET_KEY = "test-secret"
     SQLALCHEMY_DATABASE_URI = "sqlite://"
+    SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True}
     WTF_CSRF_ENABLED = False
+    API_KEY = "test-api-key"
     GEMINI_API_KEY = ""
     GROQ_API_KEY = ""
     SHORT_TERM_MEMORY_LIMIT = 8
     LONG_TERM_MEMORY_LIMIT = 5
+
+

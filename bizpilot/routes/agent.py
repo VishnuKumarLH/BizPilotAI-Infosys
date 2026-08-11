@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timezone
 
-from flask import Blueprint, jsonify, render_template, request
+from flask import Blueprint, current_app, jsonify, render_template, request
 from flask_login import current_user, login_required
+from sqlalchemy import text
 
 from ..extensions import db
 from ..models import (
@@ -27,7 +29,36 @@ logger = logging.getLogger(__name__)
 @agent_bp.post("/api/agent/run")
 @login_required
 def run_agent_workflow():
+    """
+    Synchronously execute a multi-agent decision workflow for a user query.
+    ---
+    tags:
+      - Decision Engine
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - query
+          properties:
+            query:
+              type: string
+              description: Business decision prompt / question
+            session_id:
+              type: integer
+              description: Optional active chat session ID
+    responses:
+      200:
+        description: Workflow analysis decision and explainability trace
+      400:
+        description: Missing or invalid query parameters
+      500:
+        description: Workflow processing error
+    """
     data = request.get_json(silent=True)
+
     if not isinstance(data, dict):
         return jsonify({"success": False, "error": "A JSON request body is required."}), 400
     query = str(data.get("query", "")).strip()
@@ -113,6 +144,114 @@ def workflow_detail(workflow_id: str):
     payload["agent_steps"] = [_step_dict(step) for step in steps]
     payload["tool_calls"] = [_tool_call_dict(tool) for tool in tools]
     return jsonify({"success": True, "workflow": payload})
+
+
+@agent_bp.get("/api/health")
+def health_check():
+    database = "ok"
+    status_code = 200
+    try:
+        db.session.execute(text("SELECT 1"))
+    except Exception:
+        logger.exception("Health check database probe failed")
+        db.session.rollback()
+        database = "unavailable"
+        status_code = 503
+    return jsonify(
+        {
+            "success": database == "ok",
+            "status": "ok" if database == "ok" else "degraded",
+            "checked_at": datetime.now(timezone.utc).isoformat(),
+            "services": {
+                "database": database,
+                "gemini_configured": bool(current_app.config.get("GEMINI_API_KEY")),
+                "groq_configured": bool(current_app.config.get("GROQ_API_KEY")),
+                "rule_based_fallback": bool(
+                    current_app.config.get("ENABLE_RULE_BASED_FALLBACK")
+                ),
+                "weather_location": current_app.config.get("WEATHER_LOCATION"),
+            },
+        }
+    ), status_code
+
+
+@agent_bp.get("/api/workflows/<workflow_id>/timeline")
+@login_required
+def workflow_timeline(workflow_id: str):
+    run = _owned_workflow(workflow_id)
+    if not run:
+        return jsonify({"success": False, "error": "Workflow not found."}), 404
+    steps = _workflow_steps(workflow_id)
+    tools = _workflow_tools(workflow_id)
+    timeline = [
+        {
+            "type": "lifecycle",
+            "name": event.get("status"),
+            "status": event.get("status"),
+            "summary": event.get("summary"),
+            "timestamp": event.get("timestamp"),
+            "duration_ms": None,
+        }
+        for event in (run.lifecycle_events_json or [])
+    ]
+    timeline.extend(
+        {
+            "type": "agent",
+            "name": step.agent_name,
+            "status": step.status,
+            "summary": step.output_data,
+            "timestamp": step.created_at.isoformat(),
+            "duration_ms": step.execution_time_ms,
+        }
+        for step in steps
+    )
+    timeline.extend(
+        {
+            "type": "tool",
+            "name": tool.tool_name,
+            "status": tool.status,
+            "summary": tool.output_summary,
+            "timestamp": tool.created_at.isoformat(),
+            "duration_ms": tool.execution_time_ms,
+        }
+        for tool in tools
+    )
+    timeline.sort(key=lambda item: item.get("timestamp") or "")
+    return jsonify({"success": True, "workflow_id": workflow_id, "timeline": timeline})
+
+
+@agent_bp.get("/api/workflows/<workflow_id>/tools")
+@login_required
+def workflow_tools(workflow_id: str):
+    if not _owned_workflow(workflow_id):
+        return jsonify({"success": False, "error": "Workflow not found."}), 404
+    return jsonify(
+        {
+            "success": True,
+            "workflow_id": workflow_id,
+            "tools": [_tool_call_dict(tool) for tool in _workflow_tools(workflow_id)],
+        }
+    )
+
+
+@agent_bp.get("/api/workflows/<workflow_id>/agents")
+@login_required
+def workflow_agents(workflow_id: str):
+    if not _owned_workflow(workflow_id):
+        return jsonify({"success": False, "error": "Workflow not found."}), 404
+    return jsonify(
+        {
+            "success": True,
+            "workflow_id": workflow_id,
+            "agents": [_step_dict(step) for step in _workflow_steps(workflow_id)],
+        }
+    )
+
+
+@agent_bp.get("/api/metrics")
+@login_required
+def workflow_metrics():
+    return jsonify({"success": True, "metrics": _metrics_for_user(current_user.id)})
 
 
 @agent_bp.get("/api/memory")
@@ -218,6 +357,7 @@ def history_page():
         page_name="agent_history",
         workflows=runs,
         workflow_details=details,
+        metrics=_metrics_for_user(current_user.id),
     )
 
 
@@ -275,6 +415,131 @@ def _owned_workflow(workflow_id: str) -> AgentWorkflowRun | None:
             AgentWorkflowRun.user_id == current_user.id,
         )
     )
+
+
+def _workflow_steps(workflow_id: str) -> list[AgentExecutionLog]:
+    return db.session.scalars(
+        db.select(AgentExecutionLog)
+        .where(
+            AgentExecutionLog.workflow_id == workflow_id,
+            AgentExecutionLog.user_id == current_user.id,
+        )
+        .order_by(AgentExecutionLog.execution_order)
+    ).all()
+
+
+def _workflow_tools(workflow_id: str) -> list[ToolCallLog]:
+    return db.session.scalars(
+        db.select(ToolCallLog)
+        .where(
+            ToolCallLog.workflow_id == workflow_id,
+            ToolCallLog.user_id == current_user.id,
+        )
+        .order_by(ToolCallLog.created_at)
+    ).all()
+
+
+def _metrics_for_user(user_id: int) -> dict:
+    workflow_rows = db.session.execute(
+        db.select(
+            AgentWorkflowRun.status,
+            db.func.count(AgentWorkflowRun.id),
+            db.func.avg(AgentWorkflowRun.execution_time_ms),
+        )
+        .where(AgentWorkflowRun.user_id == user_id)
+        .group_by(AgentWorkflowRun.status)
+    ).all()
+    status_counts = {status: int(count) for status, count, _avg in workflow_rows}
+    total = sum(status_counts.values())
+    avg_workflow = _avg_or_none([avg for _status, _count, avg in workflow_rows])
+    success_count = status_counts.get("completed", 0)
+    agent_rows = db.session.execute(
+        db.select(
+            AgentExecutionLog.agent_name,
+            AgentExecutionLog.status,
+            db.func.count(AgentExecutionLog.id),
+            db.func.avg(AgentExecutionLog.execution_time_ms),
+            db.func.max(AgentExecutionLog.created_at),
+        )
+        .where(AgentExecutionLog.user_id == user_id)
+        .group_by(AgentExecutionLog.agent_name, AgentExecutionLog.status)
+    ).all()
+    tool_rows = db.session.execute(
+        db.select(
+            ToolCallLog.tool_name,
+            ToolCallLog.status,
+            db.func.count(ToolCallLog.id),
+            db.func.avg(ToolCallLog.execution_time_ms),
+            db.func.max(ToolCallLog.created_at),
+        )
+        .where(ToolCallLog.user_id == user_id)
+        .group_by(ToolCallLog.tool_name, ToolCallLog.status)
+    ).all()
+    fallback_count = db.session.scalar(
+        db.select(db.func.count(AgentWorkflowRun.id)).where(
+            AgentWorkflowRun.user_id == user_id,
+            AgentWorkflowRun.fallback_used.is_(True),
+        )
+    )
+    return {
+        "workflows": {
+            "total": total,
+            "completed": success_count,
+            "failed": status_counts.get("failed", 0),
+            "partial": status_counts.get("partial", 0),
+            "success_rate": round(success_count / total, 3) if total else None,
+            "average_duration_ms": avg_workflow,
+            "fallback_usage_count": int(fallback_count or 0),
+        },
+        "agents": _group_metric_rows(agent_rows),
+        "tools": _group_metric_rows(tool_rows),
+    }
+
+
+def _group_metric_rows(rows) -> list[dict]:
+    grouped: dict[str, dict] = {}
+    for name, status, count, avg, latest in rows:
+        entry = grouped.setdefault(
+            name,
+            {
+                "name": name,
+                "calls": 0,
+                "success": 0,
+                "failed": 0,
+                "average_duration_ms": None,
+                "latest_status": None,
+                "latest_at": None,
+                "_weighted_duration": 0.0,
+            },
+        )
+        count = int(count)
+        entry["calls"] += count
+        if status == "success":
+            entry["success"] += count
+        elif status == "failed":
+            entry["failed"] += count
+        if avg is not None:
+            entry["_weighted_duration"] += float(avg) * count
+        if latest and (entry["latest_at"] is None or latest.isoformat() > entry["latest_at"]):
+            entry["latest_status"] = status
+            entry["latest_at"] = latest.isoformat()
+    result = []
+    for entry in grouped.values():
+        if entry["calls"]:
+            entry["average_duration_ms"] = round(
+                entry.pop("_weighted_duration") / entry["calls"]
+            )
+        else:
+            entry.pop("_weighted_duration")
+        result.append(entry)
+    return sorted(result, key=lambda item: item["name"])
+
+
+def _avg_or_none(values) -> int | None:
+    numeric = [float(value) for value in values if value is not None]
+    if not numeric:
+        return None
+    return round(sum(numeric) / len(numeric))
 
 
 def _step_dict(step: AgentExecutionLog) -> dict:

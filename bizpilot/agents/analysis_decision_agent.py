@@ -114,31 +114,32 @@ class AnalysisDecisionAgent:
     @staticmethod
     def _legacy_evidence(evidence: dict) -> dict:
         mapped = {
-            "inventory": evidence.get("product_lookup_tool", []),
-            "low_stock": evidence.get("low_stock_tool", []),
+            "inventory": evidence.get("product_lookup_tool", [])[:10],
+            "low_stock": evidence.get("low_stock_tool", [])[:10],
             "sales": evidence.get("sales_summary_tool", {}),
             "expenses": evidence.get("expense_summary_tool", {}),
-            "best_sellers": evidence.get("best_selling_product_tool", []),
-            "slow_movers": evidence.get("slow_moving_product_tool", []),
+            "best_sellers": evidence.get("best_selling_product_tool", [])[:10],
+            "slow_movers": evidence.get("slow_moving_product_tool", [])[:10],
             "feedback": evidence.get("feedback_retrieval_tool", {}),
             "weather": evidence.get("weather_tool", {}),
         }
         performance = evidence.get("product_performance_tool", {})
         if performance:
-            mapped["best_sellers"] = performance.get(
-                "best_sellers", mapped["best_sellers"]
+            mapped["best_sellers"] = (
+                performance.get("best_sellers", mapped["best_sellers"])[:10]
             )
-            mapped["slow_movers"] = performance.get(
-                "slow_movers", mapped["slow_movers"]
+            mapped["slow_movers"] = (
+                performance.get("slow_movers", mapped["slow_movers"])[:10]
             )
         out_of_stock = evidence.get("out_of_stock_tool", [])
         if out_of_stock:
             out_ids = {item.get("id") for item in out_of_stock}
             mapped["low_stock"] = [
-                *out_of_stock,
+                *out_of_stock[:5],
                 *(item for item in mapped["low_stock"] if item.get("id") not in out_ids),
-            ]
+            ][:10]
         return mapped
+
 
     @staticmethod
     def _calculation(state: AgentWorkflowState) -> dict:
