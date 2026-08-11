@@ -34,4 +34,4 @@ COPY . .
 
 EXPOSE 5000
 
-CMD ["sh", "-c", "flask db upgrade && gunicorn --bind 0.0.0.0:${PORT} --workers ${WEB_CONCURRENCY} --timeout ${GUNICORN_TIMEOUT} app:app"]
+CMD ["sh", "-c", "flask db upgrade && python seed_data.py && gunicorn --bind 0.0.0.0:${PORT} --workers ${WEB_CONCURRENCY} --timeout ${GUNICORN_TIMEOUT} app:app"]
