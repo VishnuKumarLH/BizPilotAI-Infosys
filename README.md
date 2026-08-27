@@ -6,7 +6,7 @@
 
 The system uses a **multi-agent architecture powered by LangGraph**, structured agent state, short-term conversation memory, long-term decision memory, workflow tracking, validation, monitoring, and deterministic fallback mechanisms.
 
-🔗 **Live Demo:** https://bizpilot-ai-pyua.onrender.com/
+🔗 **Live Demo:** https://bizpilot-ai-vexg.onrender.com/
 
 🔗 **GitHub Repository:** https://github.com/VishnuKumarLH/BizPilotAI-Infosys
 
